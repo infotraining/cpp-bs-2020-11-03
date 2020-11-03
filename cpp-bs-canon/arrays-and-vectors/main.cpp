@@ -47,7 +47,6 @@ void print(const T& container)
 }
 
 
-
 TEST_CASE("native arrays - old style")
 {
 	constexpr int size = 20;
