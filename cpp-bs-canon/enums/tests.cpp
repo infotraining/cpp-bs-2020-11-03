@@ -8,15 +8,24 @@
 
 using namespace std;
 
-TEST_CASE("div")
+enum DayOfWeek : uint8_t { mon = 1, tue, wed, thd, fri, sat, sun };
+
+TEST_CASE("enums")
 {
-    int x = 5;
-    int y = 2;
+	DayOfWeek day = mon;
 
-    int quotient, reminder;
+	int index = thd;
 
-    div(x, y, quotient, reminder);
+	REQUIRE(index == 4);
+}
 
-    REQUIRE(quotient == 2);
-    REQUIRE(reminder == 1);
+enum class Coffee : uint8_t { espresso = 1, chemex, v60 };
+
+TEST_CASE("scoped enumerations")
+{
+	Coffee c = Coffee::chemex;
+
+	int index = static_cast<int>(c);
+
+	REQUIRE(index == 2);
 }
