@@ -36,6 +36,34 @@ public:
 		std::copy(il.begin(), il.end(), data_);
 	}
 
+	// copy constructor
+	Array(const Array& source) : size_(source.size_), data_(new int[source.size_])
+	{
+		std::copy(source.begin(), source.end(), this->data_);
+	}
+
+	// copy assignment operator
+	Array& operator=(const Array& source)
+	{
+		if (this != &source) // protection from self-assignment
+		{
+			delete[] data_; // free memory
+
+			// copy of state from source object
+			size_ = source.size_;
+			data_ = new int[size_];
+			std::copy(source.begin(), source.end(), data_);
+		}
+
+		return *this;
+	}
+
+	// destructor
+	~Array()
+	{
+		delete[] data_;
+	}
+
 	iterator begin()
 	{
 		return data_;
@@ -76,6 +104,49 @@ public:
 		return data_[index];
 	}
 };
+
+bool operator==(const Array& lhs, const Array& rhs)
+{
+	/*if (lhs.size() != rhs.size())
+		return false;
+
+	bool are_same = true;
+	for (size_t i = 0; i < lhs.size(); ++i)
+	{
+		if (lhs[i] != rhs[i])
+		{
+			are_same = false;
+			break;
+		}
+	}
+
+	return are_same;*/
+
+	return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
+
+TEST_CASE("Array - copy & assign")
+{
+	Array arr1 = { 1, 2, 3, 4 };
+
+	SECTION("copy constructor")
+	{
+		Array arr2 = arr1; // copy constuctor
+
+		CHECK(arr2 == Array{ 1, 2, 3, 4 });
+	}
+
+	SECTION("copy assingment")
+	{
+		Array arr3(3);
+		CHECK(arr3 == Array{ 0, 0, 0 });
+
+		arr3 = arr1; // copy assignment
+		CHECK(arr3 == Array{ 1, 2, 3, 4 });
+
+		arr3 = arr3; // self assignment
+	}
+}
 
 TEST_CASE("Array - construction with size, default value")
 {
@@ -151,18 +222,18 @@ TEST_CASE("For-each")
 
 	REQUIRE(std::all_of(arr1.begin(), arr1.end(), [](int x) { return x == 1; }));
 
-	SECTION("const object & iterators")
-	{
-		const Array carr = { 1, 2, 3 };
-		for (const auto& item : carr)
-		{
-			std::cout << item << " ";
-		}
-		std::cout << "\n";
+	//SECTION("const object & iterators")
+	//{
+	//	const Array carr = { 1, 2, 3 };
+	//	for (const auto& item : carr)
+	//	{
+	//		std::cout << item << " ";
+	//	}
+	//	std::cout << "\n";
 
-		Array::const_iterator it = carr.begin();
-		CHECK(*it == 1);
-	}
+	//	Array::const_iterator it = carr.begin();
+	//	CHECK(*it == 1);
+	//}
 }
 
 class MultiArray
@@ -203,4 +274,50 @@ TEST_CASE("MultiArray")
 	auto [firt_item, second_item] = ma[0];
 	CHECK(firt_item == 1);
 	CHECK(second_item == 2);
+}
+
+// value semantics
+struct Data
+{
+	std::string name;
+	std::vector<int> data;
+	Array array;
+
+	void print() const
+	{
+		std::cout << "Data(" << name << ", [ ";
+		for (const auto& item : data)
+			std::cout << item << " ";
+		std::cout << "], [ ";
+		for (const auto& item : array)
+			std::cout << item << " ";
+		std::cout << "]) - " << this << "\n";
+	}
+};
+
+TEST_CASE("aggregate initialization")
+{
+	int tab1[10] = { 1, 2, 3 }; // aggregate initialization
+	int tab2[10]{ 1, 2, 3 };    // aggregate initialization
+
+	Data d1{ "d1", { 1, 2, 3 }, {4, 5, 6} }; // aggregate initialization
+
+	Array arr1{ 1, 2, 3 }; // constructor with std::initializer_list<int>
+}
+
+TEST_CASE("copy & assign")
+{
+	Data d1{ "d1", { 1, 2, 3 }, {4, 5, 6 } }; // aggregate initialization
+
+	Data d2 = d1; // copy construction
+	Data d3(d1);  // copy construction
+	Data d4{ d1 }; // copy construction
+
+	d3.data[1] = 0;
+	d3.name = "modified";
+	d1.print();
+	d3.print();
+
+	d3 = d1; // copy assignment
+	d3.print();
 }
