@@ -20,24 +20,64 @@ private:
 	size_t size_;
 	int* data_;
 public:
-	Array(size_t size)
+	typedef int* iterator; // legacy style
+	using const_iterator = const int*; // since C++11
+
+	Array(size_t size, int value = 0)
 		: size_(size), data_(new int[size])
 	{	
-		std::fill_n(data_, size_, 0);
+		std::fill_n(data_, size_, value);
+	}
+
+	// allows list initialization: Array a = {1, 2, 3}
+	Array(std::initializer_list<int> il)
+		: size_(il.size()), data_(new int[il.size()])
+	{
+		std::copy(il.begin(), il.end(), data_);
+	}
+
+	iterator begin()
+	{
+		return data_;
+	}
+
+	const_iterator begin() const
+	{
+		return data_;
+	}
+
+	iterator end()
+	{
+		return data_ + size_;
+	}
+
+	const_iterator end() const
+	{
+		return data_ + size_;
+	}
+
+	void reset(int value)
+	{
+		std::fill_n(data_, size_, value);
 	}
 
 	size_t size() const
 	{
-		return size_;
+		return this->size_;
 	}
 
 	int& operator[](size_t index)
 	{
 		return data_[index];
 	}
+
+	const int& operator[](size_t index) const
+	{
+		return data_[index];
+	}
 };
 
-TEST_CASE("Array - construction with size")
+TEST_CASE("Array - construction with size, default value")
 {
 	Array arr1(10);
 
@@ -53,6 +93,33 @@ TEST_CASE("Array - construction with size")
 	}
 }
 
+TEST_CASE("Array - construction with size & value")
+{
+	Array arr1(10, 1);
+
+	SECTION("size is set")
+	{
+		REQUIRE(arr1.size() == 10);
+	}
+
+	SECTION("all items are zero")
+	{
+		for (size_t i = 0; i < arr1.size(); ++i)
+			CHECK(arr1[i] == 1);
+	}
+}
+
+TEST_CASE("Array - construction with list")
+{
+	const Array arr1 = { 1, 2, 3 };
+
+	CHECK(arr1.size() == 3);
+
+	CHECK(arr1[0] == 1);
+	CHECK(arr1[1] == 2);
+	CHECK(arr1[2] == 3);
+}
+
 TEST_CASE("Indexing")
 {
 	Array arr1(10);
@@ -64,6 +131,39 @@ TEST_CASE("Indexing")
 	CHECK(arr1[5] == 6);
 }
 
+TEST_CASE("Reset")
+{
+	Array arr1 = { 1, 2, 3 };
+
+	arr1.reset(0);
+
+	CHECK(arr1[0] == 0);
+	CHECK(arr1[1] == 0);
+	CHECK(arr1[2] == 0);
+}
+
+TEST_CASE("For-each")
+{
+	Array arr1(10);
+
+	for (auto& item : arr1)
+		item = 1;
+
+	REQUIRE(std::all_of(arr1.begin(), arr1.end(), [](int x) { return x == 1; }));
+
+	SECTION("const object & iterators")
+	{
+		const Array carr = { 1, 2, 3 };
+		for (const auto& item : carr)
+		{
+			std::cout << item << " ";
+		}
+		std::cout << "\n";
+
+		Array::const_iterator it = carr.begin();
+		CHECK(*it == 1);
+	}
+}
 
 class MultiArray
 {
