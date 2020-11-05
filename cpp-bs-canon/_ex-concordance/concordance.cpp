@@ -1,5 +1,3 @@
-#include <boost/algorithm/string.hpp>
-#include <boost/tokenizer.hpp>
 #include <fstream>
 #include <iostream>
 #include <iterator>
