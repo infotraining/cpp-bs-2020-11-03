@@ -40,6 +40,7 @@ public:
 	Array(const Array& source) : size_(source.size_), data_(new int[source.size_])
 	{
 		std::copy(source.begin(), source.end(), this->data_);
+		std::cout << "Array(const Array& - copy constructor)\n";
 	}
 
 	// copy assignment operator
@@ -53,6 +54,30 @@ public:
 			size_ = source.size_;
 			data_ = new int[size_];
 			std::copy(source.begin(), source.end(), data_);
+		}
+
+		return *this;
+	}
+
+	// move constructor
+	Array(Array&& source) : size_(source.size_), data_(source.data_)
+	{
+		source.data_ = nullptr;
+		source.size_ = 0;
+		std::cout << "Array(Array&& - move constructor)\n";
+	}
+
+	// move assignment operator
+	Array& operator=(Array&& source)
+	{
+		if (this != &source) // protection from self-assignment
+		{
+			delete[] data_; // free memory
+
+			// move state from the source object
+			size_ = source.size_;
+			data_ = source.data_;
+			source.data_ = nullptr;
 		}
 
 		return *this;
@@ -125,157 +150,180 @@ bool operator==(const Array& lhs, const Array& rhs)
 	return std::equal(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
 }
 
-TEST_CASE("Array - copy & assign")
+Array load_data()
 {
-	Array arr1 = { 1, 2, 3, 4 };
+	Array arr(1'000);
 
-	SECTION("copy constructor")
-	{
-		Array arr2 = arr1; // copy constuctor
+	std::iota(arr.begin(), arr.end(), 0);
 
-		CHECK(arr2 == Array{ 1, 2, 3, 4 });
-	}
-
-	SECTION("copy assingment")
-	{
-		Array arr3(3);
-		CHECK(arr3 == Array{ 0, 0, 0 });
-
-		arr3 = arr1; // copy assignment
-		CHECK(arr3 == Array{ 1, 2, 3, 4 });
-
-		arr3 = arr3; // self assignment
-	}
+	return arr;
 }
 
-TEST_CASE("Array - construction with size, default value")
+TEST_CASE("load data")
 {
-	Array arr1(10);
+	Array data = load_data(); // implicit move
 
-	SECTION("size is set")
-	{
-		REQUIRE(arr1.size() == 10);
-	}
+	REQUIRE(data.size() == 1'000);
+	CHECK(data[665] == 665);
 
-	SECTION("all items are zero")
-	{
-		for (size_t i = 0; i < arr1.size(); ++i)
-			CHECK(arr1[i] == 0);
-	}
+	Array backup = data; // copy
+	Array target = std::move(data); // explicit move
+
+	CHECK(data.size() == 0);
+	CHECK(target.size() == 1'000);
 }
 
-TEST_CASE("Array - construction with size & value")
-{
-	Array arr1(10, 1);
-
-	SECTION("size is set")
-	{
-		REQUIRE(arr1.size() == 10);
-	}
-
-	SECTION("all items are zero")
-	{
-		for (size_t i = 0; i < arr1.size(); ++i)
-			CHECK(arr1[i] == 1);
-	}
-}
-
-TEST_CASE("Array - construction with list")
-{
-	const Array arr1 = { 1, 2, 3 };
-
-	CHECK(arr1.size() == 3);
-
-	CHECK(arr1[0] == 1);
-	CHECK(arr1[1] == 2);
-	CHECK(arr1[2] == 3);
-}
-
-TEST_CASE("Indexing")
-{
-	Array arr1(10);
-
-	arr1[0] = 1;
-	arr1[5] = 6;
-
-	CHECK(arr1[0] == 1);
-	CHECK(arr1[5] == 6);
-}
-
-TEST_CASE("Reset")
-{
-	Array arr1 = { 1, 2, 3 };
-
-	arr1.reset(0);
-
-	CHECK(arr1[0] == 0);
-	CHECK(arr1[1] == 0);
-	CHECK(arr1[2] == 0);
-}
-
-TEST_CASE("For-each")
-{
-	Array arr1(10);
-
-	for (auto& item : arr1)
-		item = 1;
-
-	REQUIRE(std::all_of(arr1.begin(), arr1.end(), [](int x) { return x == 1; }));
-
-	//SECTION("const object & iterators")
-	//{
-	//	const Array carr = { 1, 2, 3 };
-	//	for (const auto& item : carr)
-	//	{
-	//		std::cout << item << " ";
-	//	}
-	//	std::cout << "\n";
-
-	//	Array::const_iterator it = carr.begin();
-	//	CHECK(*it == 1);
-	//}
-}
-
-class MultiArray
-{
-private:
-	size_t size_;
-	int* data1_;
-	int* data2_;
-public:
-	MultiArray(size_t size)
-		: size_(size), data1_(new int[size]), data2_(new int[size])
-	{
-		std::fill_n(data1_, size_, 0);
-		std::fill_n(data2_, size_, 0);
-	}
-
-	size_t size() const
-	{
-		return size_;
-	}
-
-	std::tuple<int&, int&> operator[](size_t index)
-	{
-		return std::tie(data1_[index], data2_[index]);
-	}
-};
-
-TEST_CASE("MultiArray")
-{
-	MultiArray ma(10);
-
-	tuple<int, int> col = ma[0];
-	CHECK(std::get<0>(col) == 0);
-	CHECK(std::get<1>(col) == 0);
-
-	ma[0] = tuple(1, 2);
-
-	auto [firt_item, second_item] = ma[0];
-	CHECK(firt_item == 1);
-	CHECK(second_item == 2);
-}
-
+//TEST_CASE("Array - copy & assign")
+//{
+//	Array arr1 = { 1, 2, 3, 4 };
+//
+//	SECTION("copy constructor")
+//	{
+//		Array arr2 = arr1; // copy constuctor
+//
+//		CHECK(arr2 == Array{ 1, 2, 3, 4 });
+//	}
+//
+//	SECTION("copy assingment")
+//	{
+//		Array arr3(3);
+//		CHECK(arr3 == Array{ 0, 0, 0 });
+//
+//		arr3 = arr1; // copy assignment
+//		CHECK(arr3 == Array{ 1, 2, 3, 4 });
+//
+//		arr3 = arr3; // self assignment
+//	}
+//}
+//
+//TEST_CASE("Array - construction with size, default value")
+//{
+//	Array arr1(10);
+//
+//	SECTION("size is set")
+//	{
+//		REQUIRE(arr1.size() == 10);
+//	}
+//
+//	SECTION("all items are zero")
+//	{
+//		for (size_t i = 0; i < arr1.size(); ++i)
+//			CHECK(arr1[i] == 0);
+//	}
+//}
+//
+//TEST_CASE("Array - construction with size & value")
+//{
+//	Array arr1(10, 1);
+//
+//	SECTION("size is set")
+//	{
+//		REQUIRE(arr1.size() == 10);
+//	}
+//
+//	SECTION("all items are zero")
+//	{
+//		for (size_t i = 0; i < arr1.size(); ++i)
+//			CHECK(arr1[i] == 1);
+//	}
+//}
+//
+//TEST_CASE("Array - construction with list")
+//{
+//	const Array arr1 = { 1, 2, 3 };
+//
+//	CHECK(arr1.size() == 3);
+//
+//	CHECK(arr1[0] == 1);
+//	CHECK(arr1[1] == 2);
+//	CHECK(arr1[2] == 3);
+//}
+//
+//TEST_CASE("Indexing")
+//{
+//	Array arr1(10);
+//
+//	arr1[0] = 1;
+//	arr1[5] = 6;
+//
+//	CHECK(arr1[0] == 1);
+//	CHECK(arr1[5] == 6);
+//}
+//
+//TEST_CASE("Reset")
+//{
+//	Array arr1 = { 1, 2, 3 };
+//
+//	arr1.reset(0);
+//
+//	CHECK(arr1[0] == 0);
+//	CHECK(arr1[1] == 0);
+//	CHECK(arr1[2] == 0);
+//}
+//
+//TEST_CASE("For-each")
+//{
+//	Array arr1(10);
+//
+//	for (auto& item : arr1)
+//		item = 1;
+//
+//	REQUIRE(std::all_of(arr1.begin(), arr1.end(), [](int x) { return x == 1; }));
+//
+//	//SECTION("const object & iterators")
+//	//{
+//	//	const Array carr = { 1, 2, 3 };
+//	//	for (const auto& item : carr)
+//	//	{
+//	//		std::cout << item << " ";
+//	//	}
+//	//	std::cout << "\n";
+//
+//	//	Array::const_iterator it = carr.begin();
+//	//	CHECK(*it == 1);
+//	//}
+//}
+//
+//class MultiArray
+//{
+//private:
+//	size_t size_;
+//	int* data1_;
+//	int* data2_;
+//public:
+//	MultiArray(size_t size)
+//		: size_(size), data1_(new int[size]), data2_(new int[size])
+//	{
+//		std::fill_n(data1_, size_, 0);
+//		std::fill_n(data2_, size_, 0);
+//	}
+//
+//	size_t size() const
+//	{
+//		return size_;
+//	}
+//
+//	std::tuple<int&, int&> operator[](size_t index)
+//	{
+//		return std::tie(data1_[index], data2_[index]);
+//	}
+//};
+//
+//TEST_CASE("MultiArray")
+//{
+//	MultiArray ma(10);
+//
+//	tuple<int, int> col = ma[0];
+//	CHECK(std::get<0>(col) == 0);
+//	CHECK(std::get<1>(col) == 0);
+//
+//	ma[0] = tuple(1, 2);
+//
+//	auto [firt_item, second_item] = ma[0];
+//	CHECK(firt_item == 1);
+//	CHECK(second_item == 2);
+//}
+//
 // value semantics
 struct Data
 {
@@ -320,4 +368,13 @@ TEST_CASE("copy & assign")
 
 	d3 = d1; // copy assignment
 	d3.print();
+
+	SECTION("move semantics")
+	{
+		Data target = std::move(d1);
+
+		std::cout << "After move:\n";
+		d1.print();
+		target.print();
+	}
 }
