@@ -42,6 +42,22 @@ namespace Vectors
 			return unit_y_;
 
 		}
+
+		Vector2D operator*(double value) const
+		{
+			return Vector2D(x() * value, y() * value);
+		}
+
+		//Vector2D& operator*=(double value)
+		//{
+		//	x_ *= value;
+		//	y_ *= value;
+		//	
+		//	return *this;
+		//}
+
+		friend Vector2D& operator*=(Vector2D& v, double value);
+		friend std::istream& operator>>(std::istream& in, Vectors::Vector2D& vec);
 	};
 
 	const Vector2D Vector2D::unit_x_(1.0, 0.0);
@@ -50,6 +66,79 @@ namespace Vectors
 	Vector2D operator+(const Vector2D& v1, const Vector2D& v2)
 	{
 		return Vector2D(v1.x() + v2.x(), v1.y() + v2.y());
+	}
+
+	Vector2D operator-(const Vector2D& v1, const Vector2D& v2)
+	{
+		return Vector2D(v1.x() - v2.x(), v1.y() - v2.y());
+	}
+
+	Vector2D operator-(const Vector2D& v1)
+	{
+		return Vector2D(-v1.x(), -v1.y());
+	}
+
+	bool operator==(const Vector2D& v1, const Vector2D& v2)
+	{
+		return ((v1.x() == v2.x()) && (v1.y() == v2.y()));
+	}
+	
+	bool operator!=(const Vector2D& v1, const Vector2D& v2)
+	{
+		return !(v1 == v2);
+	}
+
+	Vector2D operator*(double value, const Vector2D& v1)
+	{
+		return Vector2D(v1.x() * value, v1.y() * value);
+	}
+
+	double operator*(const Vector2D& v1, const Vector2D& v2)
+	{
+		return v1.x() * v2.x() + v1.y() * v2.y();
+	}
+
+	Vector2D& operator*=(Vector2D& v, double value)
+	{
+		v.x_ *= value;
+		v.y_ *= value;
+
+		return v;
+	}
+
+	std::ostream& operator<<(std::ostream& out, const Vector2D& vec)
+	{
+		out << std::fixed << std::setprecision(1) << "[" << vec.x() << ", " << vec.y() << "]";
+		return out;
+	}
+
+	std::istream& operator>>(std::istream& in, Vectors::Vector2D& vec)
+	{
+		// format: "[1.0, 2.0]"
+		const char left_bracket = '[';
+		const char right_bracket = ']';
+		const char comma = ',';
+
+		char start, separator, end;
+		double x, y;
+
+		if (in >> start && start != left_bracket)
+		{
+			in.unget();
+			in.clear(std::ios_base::failbit);
+			return in;
+		}
+
+		in >> x >> separator >> y >> end;
+
+
+		if (!in || (separator != comma) || (end != right_bracket))
+			throw std::runtime_error("Stream reading error");
+
+		vec.x_ = x;
+		vec.y_ = y;
+
+		return in;
 	}
 }
 
@@ -167,17 +256,41 @@ TEST_CASE("vector2D")
 				REQUIRE(vec == Vector2D{ 2.0, 4.0 });
 			}
 		}
+
+		SECTION("operator <<")
+		{
+			cout << "vec1: " << vec1 << endl;
+
+			stringstream ss;
+
+			ss << vec1;
+
+			REQUIRE(ss.str() == "[1.0, 2.0]");
+		}
+
+		SECTION("operator >>")
+		{
+			string input("[1.0, 2.0]");
+
+			stringstream ss(input);
+
+			Vector2D vec;
+			ss >> vec;
+
+			REQUIRE(vec == Vector2D(1.0, 2.0));
+		}
 	}
+}
 
-	//        SECTION("operator <<")
-	//        {
-	//            cout << "vec1: " << vec1 << endl;
+TEST_CASE("operators")
+{
+	Vector2D v1(1.0, 2.0);
+	Vector2D v2(3.0, 0.5);
 
-	//            stringstream ss;
+	std::cout << -(v1 + v2 * (v2 * (-v1 * 4.0))) << "\n";
 
-	//            ss << vec1;
+	auto result = v1 + v2;
 
-	//            REQUIRE(ss.str() == "Vector2D(1.0, 2.0)");
-	//        }
-	//    }
+	v1 *= 3.0;
+	REQUIRE(v1 == Vector2D{ 3.0, 6.0 });
 }
