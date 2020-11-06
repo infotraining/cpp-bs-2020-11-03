@@ -96,18 +96,12 @@ TEST_CASE("binary streams")
 	}
 }
 
-struct RGB
-{
-	int r, g, b;
-
-};
-
 struct Data
 {
 	std::vector<int> data;
 };
 
-struct DataRW
+namespace DataIO
 {
 	void read(istream& in, Data& d)
 	{
@@ -119,10 +113,53 @@ struct DataRW
 
 	void write(ostream& out, const Data& d)
 	{
-		out.write(reinterpret_cast<char*>(d.data.size()), sizeof(size_t));
+		size_t size = d.data.size();
+		out.write(reinterpret_cast<char*>(&size), sizeof(size_t));
 		out.write(reinterpret_cast<const char*>(d.data.data()), d.data.size() * sizeof(int));
 	}
 };
+
+TEST_CASE("i/o for objects")
+{
+	Data row{ { 1, 2, 3, 4, 5 } };
+
+	const string file_name = "data.bin";
+
+	SECTION("write in binary format")
+	{
+		ofstream fout(file_name, ios::out | ios::binary);
+
+		if (!fout.is_open())
+		{
+			cerr << "Error: opening file failed...\n";
+			abort();
+		}
+
+		DataIO::write(fout, row);
+
+		fout.close();
+	}
+
+	SECTION("read in binary format")
+	{
+		ifstream fin(file_name, ios::in | ios::binary);
+
+		if (!fin.is_open())
+		{
+			cerr << "Error: opening file failed...\n";
+			abort();
+		}
+
+		Data expected;
+
+		DataIO::read(fin, expected);
+
+		REQUIRE(expected.data == row.data);
+		
+		fin.close();
+	}
+
+}
 
 TEST_CASE("boost tokenizer")
 {
